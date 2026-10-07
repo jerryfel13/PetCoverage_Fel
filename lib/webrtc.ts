@@ -77,7 +77,9 @@ export class PeerSession {
       try {
         const msg = JSON.parse(e.data as string);
         if (msg.t === "chat" && typeof msg.text === "string") {
-          this.cb.onChat(msg.text);
+          // Sanitize chat messages for security
+          const sanitized = msg.text.substring(0, 5000).replace(/<[^>]*>/g, "").trim();
+          if (sanitized) this.cb.onChat(sanitized);
         } else if (msg.t === "ctrl" && typeof msg.ctrl === "string") {
           this.cb.onControl(msg.ctrl as PeerControl);
         }

@@ -1,6 +1,7 @@
 import type { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { applyPrivacyOffset, isValidLatLng } from "@/lib/geo";
+import { isValidSessionId } from "@/lib/validation";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -18,8 +19,8 @@ export async function POST(request: NextRequest) {
 
   const { id, lat, lng } = (body ?? {}) as Record<string, unknown>;
 
-  if (typeof id !== "string" || id.length < 8 || id.length > 64) {
-    return Response.json({ error: "invalid id" }, { status: 400 });
+  if (!isValidSessionId(id)) {
+    return Response.json({ error: "invalid id format" }, { status: 400 });
   }
   if (!isValidLatLng(lat, lng)) {
     return Response.json({ error: "invalid coordinates" }, { status: 400 });

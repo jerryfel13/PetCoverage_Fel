@@ -1,6 +1,7 @@
 import type { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import type { SignalType } from "@/lib/types";
+import { isValidSessionId, validateSignalPayload } from "@/lib/validation";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -33,8 +34,8 @@ export async function POST(request: NextRequest) {
     unknown
   >;
 
-  if (typeof fromId !== "string" || typeof toId !== "string") {
-    return Response.json({ error: "invalid ids" }, { status: 400 });
+  if (!isValidSessionId(fromId) || !isValidSessionId(toId)) {
+    return Response.json({ error: "invalid id format" }, { status: 400 });
   }
   if (typeof type !== "string" || !VALID_TYPES.includes(type as SignalType)) {
     return Response.json({ error: "invalid type" }, { status: 400 });
@@ -44,7 +45,10 @@ export async function POST(request: NextRequest) {
     payload !== null &&
     (typeof payload !== "string" || payload.length > MAX_PAYLOAD)
   ) {
-    return Response.json({ error: "invalid payload" }, { status: 400 });
+    return Response.json({ error: "invalid payload size" }, { status: 400 });
+  }
+  if (!validateSignalPayload(payload as string | null | undefined)) {
+    return Response.json({ error: "invalid payload structure" }, { status: 400 });
   }
 
   const signalType = type as SignalType;
