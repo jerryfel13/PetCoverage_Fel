@@ -1,3 +1,5 @@
+import { sanitizeChatMessage } from "@/lib/validation";
+
 export type DescType = "offer" | "answer" | "ice";
 export type PeerControl =
   | "video-request"
@@ -77,8 +79,7 @@ export class PeerSession {
       try {
         const msg = JSON.parse(e.data as string);
         if (msg.t === "chat" && typeof msg.text === "string") {
-          // Sanitize chat messages for security
-          const sanitized = msg.text.substring(0, 5000).replace(/<[^>]*>/g, "").trim();
+          const sanitized = sanitizeChatMessage(msg.text);
           if (sanitized) this.cb.onChat(sanitized);
         } else if (msg.t === "ctrl" && typeof msg.ctrl === "string") {
           this.cb.onControl(msg.ctrl as PeerControl);

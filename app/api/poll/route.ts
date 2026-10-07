@@ -2,6 +2,8 @@ import type { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { STALE_MS, SIGNAL_TTL_MS } from "@/lib/presence";
 import type { PollResponse } from "@/lib/types";
+import { isValidSessionId } from "@/lib/validation";
+import { clientKey, rateLimit } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -10,18 +12,29 @@ export const dynamic = "force-dynamic";
 // It (1) heartbeats the caller, (2) reaps stale presence + orphan signals,
 // (3) returns the filtered online peers, and (4) drains this user's mailbox.
 export async function GET(request: NextRequest) {
+  const limited = rateLimit(clientKey(request, "poll"), 120, 60_000);
+  if (!limited.ok) {
+    return Response.json(
+      { error: "rate limited" },
+      {
+        status: 429,
+        headers: { "Retry-After": String(Math.ceil(limited.retryAfterMs / 1000)) },
+      },
+    );
+  }
+
   const params = request.nextUrl.searchParams;
   const id = params.get("id");
 
-  if (!id) {
-    return Response.json({ error: "missing id" }, { status: 400 });
+  if (!isValidSessionId(id)) {
+    return Response.json({ error: "invalid id" }, { status: 400 });
   }
 
   const now = Date.now();
   const staleCutoff = new Date(now - STALE_MS);
   const signalCutoff = new Date(now - SIGNAL_TTL_MS);
 
-  // 1) Heartbeat — refresh lastSeen for the caller.
+  // 1) Heartbeat — refresh lastSeen for the caller only.
   await prisma.presence.updateMany({
     where: { id },
     data: { lastSeen: new Date(now) },
@@ -38,7 +51,7 @@ export async function GET(request: NextRequest) {
       id: { not: id },
       lastSeen: { gte: staleCutoff },
     },
-    select: { id: true, lat: true, lng: true, busy: true },
+    select: { id: true, lat: true, lng: true, busy: true, intent: true },
   });
 
   // 4) Drain this user's mailbox: read, then delete exactly what we read so a
@@ -59,6 +72,7 @@ export async function GET(request: NextRequest) {
       lat: p.lat,
       lng: p.lng,
       busy: p.busy,
+      intent: p.intent,
     })),
     signals: inbox.map((s) => ({
       id: s.id,

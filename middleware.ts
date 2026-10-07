@@ -13,16 +13,18 @@ export function middleware(request: NextRequest) {
     "camera=(self), microphone=(self), geolocation=(self)",
   );
 
-  // Content Security Policy
+  // Content Security Policy — allow Mapbox tiles/glyphs/workers without
+  // opening the app to arbitrary third-party script.
   const csp = [
     "default-src 'self'",
     "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
-    "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' data: https:",
-    "connect-src 'self' https://*.tiles.mapbox.com https://api.mapbox.com wss:",
+    "style-src 'self' 'unsafe-inline' https://api.mapbox.com",
+    "img-src 'self' data: blob: https://*.mapbox.com https://*.tiles.mapbox.com",
+    "connect-src 'self' https://*.mapbox.com https://*.tiles.mapbox.com https://api.mapbox.com https://events.mapbox.com",
     "media-src 'self' blob:",
     "worker-src 'self' blob:",
-    "font-src 'self' data:",
+    "child-src blob:",
+    "font-src 'self' data: https://*.mapbox.com",
   ].join("; ");
 
   response.headers.set("Content-Security-Policy", csp);

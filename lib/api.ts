@@ -1,16 +1,21 @@
 // Client-side helpers for talking to the coordination API.
 import type { PollResponse, SignalType } from "@/lib/types";
+import type { IntentId } from "@/lib/intents";
 
 export async function join(
   id: string,
   lat: number,
   lng: number,
+  intent: IntentId,
 ): Promise<void> {
-  await fetch("/api/join", {
+  const res = await fetch("/api/join", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ id, lat, lng }),
+    body: JSON.stringify({ id, lat, lng, intent }),
   });
+  if (!res.ok) {
+    throw new Error(`join failed: ${res.status}`);
+  }
 }
 
 export async function poll(id: string): Promise<PollResponse> {
@@ -27,11 +32,14 @@ export async function sendSignal(
   type: SignalType,
   payload?: string,
 ): Promise<void> {
-  await fetch("/api/signal", {
+  const res = await fetch("/api/signal", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ fromId, toId, type, payload }),
   });
+  if (!res.ok) {
+    throw new Error(`signal failed: ${res.status}`);
+  }
 }
 
 // Fire-and-forget leave that survives the tab closing.

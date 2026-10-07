@@ -2,6 +2,7 @@ import type { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import type { SignalType } from "@/lib/types";
 import { isValidSessionId, validateSignalPayload } from "@/lib/validation";
+import { clientKey, rateLimit } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -22,6 +23,17 @@ const MAX_PAYLOAD = 64 * 1024; // SDP/ICE are small; cap to be safe.
 // Drops one message into the recipient's mailbox. Also manages the `busy`
 // flag so a user can only be in one connection at a time.
 export async function POST(request: NextRequest) {
+  const limited = rateLimit(clientKey(request, "signal"), 180, 60_000);
+  if (!limited.ok) {
+    return Response.json(
+      { error: "rate limited" },
+      {
+        status: 429,
+        headers: { "Retry-After": String(Math.ceil(limited.retryAfterMs / 1000)) },
+      },
+    );
+  }
+
   let body: unknown;
   try {
     body = await request.json();
@@ -36,6 +48,9 @@ export async function POST(request: NextRequest) {
 
   if (!isValidSessionId(fromId) || !isValidSessionId(toId)) {
     return Response.json({ error: "invalid id format" }, { status: 400 });
+  }
+  if (fromId === toId) {
+    return Response.json({ error: "invalid peer" }, { status: 400 });
   }
   if (typeof type !== "string" || !VALID_TYPES.includes(type as SignalType)) {
     return Response.json({ error: "invalid type" }, { status: 400 });

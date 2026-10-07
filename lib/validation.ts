@@ -1,11 +1,12 @@
 // Input validation utilities for security hardening
 
 export function isValidSessionId(id: unknown): id is string {
+  // crypto.randomUUID() → 36 chars with hyphens (allowed by [_-]).
   return (
     typeof id === "string" &&
     id.length >= 32 &&
     id.length <= 64 &&
-    /^[a-zA-Z0-9_-]+$/.test(id) // Base64url characters only
+    /^[a-zA-Z0-9_-]+$/.test(id)
   );
 }
 
