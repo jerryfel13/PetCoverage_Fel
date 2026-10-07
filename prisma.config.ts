@@ -18,11 +18,13 @@ try {
 //   DATABASE_URL  -> transaction-mode pooler (port 6543, runtime)
 //   DIRECT_URL    -> session-mode pooler (port 5432, migrations)
 //
-// We also honor DIRECT_DATABASE_URL as an alternative name.
+// We also honor DIRECT_DATABASE_URL as an alternative name, and fall
+// back to DATABASE_URL if neither is set.
 const migrationUrl =
   process.env.DIRECT_URL ??
   process.env.DIRECT_DATABASE_URL ??
-  process.env.DATABASE_URL;
+  process.env.DATABASE_URL ??
+  "";
 
 export default defineConfig({
   schema: path.join("prisma", "schema.prisma"),
@@ -30,8 +32,6 @@ export default defineConfig({
     path: path.join("prisma", "migrations"),
   },
   datasource: {
-    url: env("DIRECT_URL", { fallback: "DATABASE_URL" }),
+    url: migrationUrl,
   },
-  // Expose resolved URL for debugging (not used by Prisma directly).
-  ...(migrationUrl ? {} : {}),
 });
