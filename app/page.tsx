@@ -63,6 +63,7 @@ export default function Home() {
 
   function teardown(message?: string) {
     if (requestTimer.current) clearTimeout(requestTimer.current);
+    requestTimer.current = null;
     peerRef.current?.close();
     peerRef.current = null;
     setLocalStream(null);
@@ -252,7 +253,8 @@ export default function Home() {
       case "end": {
         const c = connRef.current;
         if (
-          (c.kind === "incoming" ||
+          (c.kind === "requesting" ||
+            c.kind === "incoming" ||
             c.kind === "connecting" ||
             c.kind === "connected") &&
           c.peerId === sig.fromId
