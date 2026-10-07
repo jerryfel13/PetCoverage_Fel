@@ -10,6 +10,7 @@ import { join, leave, poll, sendSignal } from "@/lib/api";
 import { PeerSession, type DescType, type PeerControl } from "@/lib/webrtc";
 import { POLL_INTERVAL_MS } from "@/lib/presence";
 import { type PeerDot, type SignalMsg } from "@/lib/types";
+import { type IntentId } from "@/lib/intents";
 
 type Conn =
   | { kind: "idle" }
@@ -25,6 +26,7 @@ const REQUEST_TIMEOUT_MS = 30_000;
 export default function Home() {
   const [phase, setPhase] = useState<"gate" | "live">("gate");
   const [sessionId] = useState(() => crypto.randomUUID());
+  const [myIntent, setMyIntent] = useState<IntentId>("curious");
   const [peers, setPeers] = useState<PeerDot[]>([]);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [notice, setNotice] = useState<string | null>(null);
@@ -33,6 +35,14 @@ export default function Home() {
   const [myLocation, setMyLocation] = useState<{ lat: number; lng: number } | null>(
     null,
   );
+
+  // Session-local shield list — never stored server-side. Hides a stranger
+  // for the rest of this browser session after you tap Shield.
+  const [shielded, setShielded] = useState<Set<string>>(() => new Set());
+  const shieldedRef = useRef(shielded);
+  useEffect(() => {
+    shieldedRef.current = shielded;
+  }, [shielded]);
 
   const [conn, _setConn] = useState<Conn>({ kind: "idle" });
   const connRef = useRef<Conn>(conn);
@@ -138,6 +148,10 @@ export default function Home() {
 
   function requestConnection(peerId: string) {
     if (connRef.current.kind !== "idle") return;
+    if (shieldedRef.current.has(peerId)) {
+      showNotice("Shielded for this session.");
+      return;
+    }
     setConn({ kind: "requesting", peerId });
     void sendSignal(sessionId, peerId, "request");
     requestTimer.current = setTimeout(() => {
@@ -178,6 +192,26 @@ export default function Home() {
       void sendSignal(sessionId, c.peerId, "end");
     }
     teardown();
+  }
+
+  function shieldPeer() {
+    const c = connRef.current;
+    if (
+      c.kind !== "requesting" &&
+      c.kind !== "incoming" &&
+      c.kind !== "connecting" &&
+      c.kind !== "connected"
+    ) {
+      return;
+    }
+    const peerId = c.peerId;
+    setShielded((prev) => new Set(prev).add(peerId));
+    if (c.kind === "connecting" || c.kind === "connected" || c.kind === "requesting") {
+      void sendSignal(sessionId, peerId, "end");
+    } else if (c.kind === "incoming") {
+      void sendSignal(sessionId, peerId, "decline");
+    }
+    teardown("Shielded. They won't reach you this session.");
   }
 
   function startVideoRequest() {
@@ -223,6 +257,13 @@ export default function Home() {
   }
 
   function processSignal(sig: SignalMsg) {
+    if (shieldedRef.current.has(sig.fromId)) {
+      if (sig.type === "request") {
+        void sendSignal(sessionId, sig.fromId, "decline");
+      }
+      return;
+    }
+
     switch (sig.type) {
       case "request": {
         if (connRef.current.kind === "idle") {
@@ -236,6 +277,7 @@ export default function Home() {
         const c = connRef.current;
         if (c.kind === "requesting" && c.peerId === sig.fromId) {
           if (requestTimer.current) clearTimeout(requestTimer.current);
+          requestTimer.current = null;
           startPeer(sig.fromId, true);
           setConn({ kind: "connecting", peerId: sig.fromId });
         }
@@ -245,6 +287,7 @@ export default function Home() {
         const c = connRef.current;
         if (c.kind === "requesting" && c.peerId === sig.fromId) {
           if (requestTimer.current) clearTimeout(requestTimer.current);
+          requestTimer.current = null;
           teardown("Request declined.");
         }
         break;
@@ -294,7 +337,9 @@ export default function Home() {
       try {
         const data = await poll(sessionId);
         if (!active) return;
-        setPeers(data.peers);
+        setPeers(
+          data.peers.filter((p) => !shieldedRef.current.has(p.id)),
+        );
         for (const s of data.signals) processSignalRef.current(s);
       } catch {}
       if (active) timer = setTimeout(tick, POLL_INTERVAL_MS);
@@ -315,12 +360,20 @@ export default function Home() {
     return () => {
       window.removeEventListener("pagehide", onLeave);
       window.removeEventListener("beforeunload", onLeave);
+      leave(sessionId);
     };
   }, [sessionId, phase]);
 
-  async function handleReady(lat: number, lng: number) {
+  async function handleReady(lat: number, lng: number, intent: IntentId) {
     setMyLocation({ lat, lng });
-    await join(sessionId, lat, lng);
+    setMyIntent(intent);
+    try {
+      await join(sessionId, lat, lng, intent);
+    } catch {
+      throw new Error(
+        "Couldn't reach Pulse. Check DATABASE_URL / network and try again.",
+      );
+    }
     setPhase("live");
   }
 
@@ -329,12 +382,18 @@ export default function Home() {
   }
 
   const inChat = conn.kind === "connecting" || conn.kind === "connected";
+  const activePeerId =
+    conn.kind === "idle" ? null : conn.peerId;
+  const activePeerIntent = activePeerId
+    ? peers.find((p) => p.id === activePeerId)?.intent
+    : undefined;
 
   return (
     <main className="fixed inset-0 overflow-hidden">
       <WorldMap
         peers={peers}
         me={myLocation}
+        myIntent={myIntent}
         onPeerClick={requestConnection}
         canConnect={conn.kind === "idle"}
       />
@@ -360,6 +419,7 @@ export default function Home() {
       {conn.kind === "incoming" && (
         <ConnectionPrompt
           title="A stranger wants to connect"
+          intent={activePeerIntent}
           acceptLabel="Accept"
           declineLabel="Decline"
           onAccept={acceptIncoming}
@@ -371,12 +431,14 @@ export default function Home() {
         <ChatPanel
           messages={messages}
           connected={conn.kind === "connected"}
+          peerIntent={activePeerIntent}
           videoBusy={video !== "none"}
           onSend={(text) => {
             peerRef.current?.sendChat(text);
             addMessage(true, text);
           }}
           onStartVideo={startVideoRequest}
+          onShield={shieldPeer}
           onEnd={endConnection}
         />
       )}

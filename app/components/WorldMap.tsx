@@ -4,25 +4,20 @@ import { useEffect, useRef, useState } from "react";
 import "mapbox-gl/dist/mapbox-gl.css";
 import type { Map as MapboxMap, Marker } from "mapbox-gl";
 import type { PeerDot } from "@/lib/types";
+import { intentMeta } from "@/lib/intents";
 
-const TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN ?? "pk.eyJ1IjoicHVsc2UtbWFwIiwiYSI6ImNrMDBkZW1vMDAwMDAwMDAifQ.AAAAAAAAAAAAAAAAAAAAAA";
-
-function dotColor(id: string): string {
-  let hash = 0;
-  for (let i = 0; i < id.length; i++) {
-    hash = (hash * 31 + id.charCodeAt(i)) | 0;
-  }
-  return `hsl(${Math.abs(hash) % 360}, 70%, 60%)`;
-}
+const TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN ?? "";
 
 export default function WorldMap({
   peers,
   me,
+  myIntent,
   onPeerClick,
   canConnect,
 }: {
   peers: PeerDot[];
   me: { lat: number; lng: number } | null;
+  myIntent?: string;
   onPeerClick: (id: string) => void;
   canConnect: boolean;
 }) {
@@ -84,6 +79,7 @@ export default function WorldMap({
     const map = mapRef.current;
     if (!map || !ready || !me) return;
     let cancelled = false;
+    const vibe = intentMeta(myIntent);
 
     (async () => {
       const mapboxgl = (await import("mapbox-gl")).default;
@@ -91,21 +87,22 @@ export default function WorldMap({
       if (!meMarkerRef.current) {
         const el = document.createElement("div");
         el.className = "pulse-me";
-        el.title = "You are here";
-        el.innerHTML = `<span class="pulse-me-label">Me</span>📍`;
-        // anchor "bottom" → the pin's tip sits on the exact coordinate.
-        meMarkerRef.current = new mapboxgl.Marker({ element: el, anchor: "bottom" })
+        el.title = `You · ${vibe.label}`;
+        el.innerHTML = `<span class="pulse-me-label">Me</span><span class="pulse-me-dot" style="background:${vibe.color}"></span>`;
+        meMarkerRef.current = new mapboxgl.Marker({ element: el, anchor: "center" })
           .setLngLat([me.lng, me.lat])
           .addTo(map);
       } else {
         meMarkerRef.current.setLngLat([me.lng, me.lat]);
+        const label = meMarkerRef.current.getElement().querySelector(".pulse-me-dot") as HTMLElement | null;
+        if (label) label.style.background = vibe.color;
       }
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [me, ready]);
+  }, [me, myIntent, ready]);
 
   // Reconcile markers whenever the peer list changes (or the map becomes ready).
   useEffect(() => {
@@ -121,12 +118,14 @@ export default function WorldMap({
 
       for (const peer of peers) {
         seen.add(peer.id);
+        const vibe = intentMeta(peer.intent);
         let marker = markers.get(peer.id);
         if (!marker) {
           const el = document.createElement("button");
           el.className = "pulse-dot";
-          el.style.background = dotColor(peer.id);
-          el.title = "Tap to connect";
+          el.style.background = vibe.color;
+          el.title = `${vibe.label} — tap to connect`;
+          el.setAttribute("aria-label", `Connect with ${vibe.label} stranger`);
           el.addEventListener("click", (e) => {
             e.stopPropagation();
             if (canConnectRef.current) onPeerClickRef.current(peer.id);
@@ -135,8 +134,13 @@ export default function WorldMap({
             .setLngLat([peer.lng, peer.lat])
             .addTo(map);
           markers.set(peer.id, marker);
+        } else {
+          const el = marker.getElement();
+          el.style.background = vibe.color;
+          el.title = `${vibe.label} — tap to connect`;
         }
         marker.getElement().style.opacity = peer.busy ? "0.35" : "1";
+        marker.getElement().style.pointerEvents = peer.busy ? "none" : "auto";
       }
 
       // Drop markers for peers that went offline / got filtered out.
@@ -167,9 +171,25 @@ export default function WorldMap({
         </div>
       )}
 
-      {/* Online count */}
-      <div className="absolute bottom-4 left-4 rounded-full bg-zinc-900/80 px-3 py-1.5 text-xs text-zinc-300 backdrop-blur">
-        {peers.length} online
+      {/* Online count + intent legend */}
+      <div className="absolute bottom-4 left-4 flex flex-col gap-2">
+        <div className="rounded-full bg-zinc-900/80 px-3 py-1.5 text-xs text-zinc-300 backdrop-blur">
+          {peers.length} online
+        </div>
+        <div className="hidden sm:flex items-center gap-3 rounded-2xl bg-zinc-900/80 px-3 py-2 text-[10px] uppercase tracking-wide text-zinc-400 backdrop-blur">
+          {["curious", "chill", "deep", "quick"].map((id) => {
+            const vibe = intentMeta(id);
+            return (
+              <span key={id} className="inline-flex items-center gap-1.5">
+                <span
+                  className="h-2 w-2 rounded-full"
+                  style={{ background: vibe.color }}
+                />
+                {vibe.label}
+              </span>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

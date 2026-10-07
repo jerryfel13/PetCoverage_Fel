@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { intentMeta } from "@/lib/intents";
 
 export interface ChatMessage {
   id: number;
@@ -11,20 +12,25 @@ export interface ChatMessage {
 export default function ChatPanel({
   messages,
   connected,
+  peerIntent,
   videoBusy,
   onSend,
   onStartVideo,
+  onShield,
   onEnd,
 }: {
   messages: ChatMessage[];
   connected: boolean;
+  peerIntent?: string;
   videoBusy: boolean;
   onSend: (text: string) => void;
   onStartVideo: () => void;
+  onShield: () => void;
   onEnd: () => void;
 }) {
   const [draft, setDraft] = useState("");
   const endRef = useRef<HTMLDivElement>(null);
+  const vibe = peerIntent ? intentMeta(peerIntent) : null;
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -55,6 +61,16 @@ export default function ChatPanel({
                 Connecting…
               </>
             )}
+            {vibe && (
+              <span className="ml-1 inline-flex items-center gap-1 text-zinc-400">
+                ·
+                <span
+                  className="inline-block h-1.5 w-1.5 rounded-full"
+                  style={{ background: vibe.color }}
+                />
+                {vibe.label}
+              </span>
+            )}
           </p>
         </div>
         <div className="flex gap-2">
@@ -64,6 +80,13 @@ export default function ChatPanel({
             className="rounded-full border border-zinc-700 px-3 py-1.5 text-sm transition-all hover:border-zinc-500 hover:bg-zinc-800 active:scale-95 disabled:opacity-40 disabled:hover:scale-100"
           >
             Video
+          </button>
+          <button
+            onClick={onShield}
+            title="End and hide this stranger for this session"
+            className="rounded-full border border-amber-500/40 px-3 py-1.5 text-sm text-amber-200 transition-all hover:border-amber-400 hover:bg-amber-500/10 active:scale-95"
+          >
+            Shield
           </button>
           <button
             onClick={onEnd}
@@ -78,6 +101,7 @@ export default function ChatPanel({
         {messages.length === 0 && (
           <p className="mt-8 text-center text-sm text-zinc-500 animate-fade-in">
             Say hello. Messages are peer-to-peer and never stored.
+            Use Shield if you want them gone for this session.
           </p>
         )}
         {messages.map((m, idx) => (
