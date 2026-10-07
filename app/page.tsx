@@ -51,6 +51,7 @@ export default function Home() {
   const peerRef = useRef<PeerSession | null>(null);
   const msgId = useRef(0);
   const requestTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const videoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   function showNotice(text: string) {
     setNotice(text);
@@ -64,6 +65,8 @@ export default function Home() {
   function teardown(message?: string) {
     if (requestTimer.current) clearTimeout(requestTimer.current);
     requestTimer.current = null;
+    if (videoTimer.current) clearTimeout(videoTimer.current);
+    videoTimer.current = null;
     peerRef.current?.close();
     peerRef.current = null;
     setLocalStream(null);
@@ -101,6 +104,8 @@ export default function Home() {
         if (videoRef.current === "none") setVideo("incoming");
         break;
       case "video-accept":
+        if (videoTimer.current) clearTimeout(videoTimer.current);
+        videoTimer.current = null;
         if (videoRef.current === "requesting" && ps) {
           ps.startVideo()
             .then((stream) => {
@@ -115,6 +120,8 @@ export default function Home() {
         }
         break;
       case "video-decline":
+        if (videoTimer.current) clearTimeout(videoTimer.current);
+        videoTimer.current = null;
         if (videoRef.current === "requesting") {
           setVideo("none");
           showNotice("Video declined.");
@@ -177,6 +184,12 @@ export default function Home() {
     if (videoRef.current !== "none" || !peerRef.current) return;
     setVideo("requesting");
     peerRef.current.sendControl("video-request");
+    videoTimer.current = setTimeout(() => {
+      if (videoRef.current === "requesting") {
+        setVideo("none");
+        showNotice("Video request timed out.");
+      }
+    }, REQUEST_TIMEOUT_MS);
   }
 
   function acceptVideo() {
