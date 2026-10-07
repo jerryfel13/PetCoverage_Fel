@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -15,6 +15,17 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Pulse",
   description: "A living globe of anonymous strangers. Tap a dot, start talking.",
+};
+
+// Lock the viewport so mobile browsers (especially iOS Safari) don't
+// auto-zoom when the chat input is focused or when video starts.
+// Inputs are sized at 16px to avoid the iOS input-zoom trigger.
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({

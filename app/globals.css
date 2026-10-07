@@ -88,6 +88,9 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+  /* Prevent double-tap zoom on mobile; zoom is locked via viewport. */
+  touch-action: manipulation;
+  overscroll-behavior: none;
 }
 
 /* Live user dots on the map */

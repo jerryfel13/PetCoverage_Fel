@@ -130,7 +130,7 @@ export default function ChatPanel({
           onChange={(e) => setDraft(e.target.value)}
           placeholder={connected ? "Type a message…" : "Connecting…"}
           disabled={!connected}
-          className="flex-1 rounded-full bg-zinc-900 px-4 py-2.5 text-sm outline-none placeholder:text-zinc-600 transition-all focus:ring-2 focus:ring-emerald-400 disabled:opacity-50 border border-zinc-800"
+          className="flex-1 rounded-full bg-zinc-900 px-4 py-2.5 text-base outline-none placeholder:text-zinc-600 transition-all focus:ring-2 focus:ring-emerald-400 disabled:opacity-50 border border-zinc-800"
         />
         <button
           type="submit"

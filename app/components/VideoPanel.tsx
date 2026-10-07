@@ -27,14 +27,14 @@ export default function VideoPanel({
   }, [remoteStream]);
 
   return (
-    <div className="absolute inset-0 z-30 flex flex-col bg-black">
-      <div className="relative flex-1">
+    <div className="absolute inset-0 z-30 flex flex-col bg-black" style={{ touchAction: "none" }}>
+      <div className="relative flex-1 min-h-0">
         {/* Remote (full screen) */}
         <video
           ref={remoteRef}
           autoPlay
           playsInline
-          className="h-full w-full bg-zinc-900 object-cover"
+          className="h-full w-full bg-zinc-900 object-contain"
         />
         {!remoteStream && (
           <div className="absolute inset-0 flex items-center justify-center text-zinc-500">
