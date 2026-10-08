@@ -119,6 +119,9 @@ export default function Home() {
   }
 
   function teardown(message?: string) {
+    // Already torn down — the data-channel close and presence expiry
+    // can fire together; skip duplicate teardowns and notices.
+    if (connRef.current.kind === "idle" && !peerRef.current) return;
     if (requestTimer.current) clearTimeout(requestTimer.current);
     requestTimer.current = null;
     if (videoTimer.current) clearTimeout(videoTimer.current);
@@ -395,9 +398,22 @@ export default function Home() {
       try {
         const data = await poll(sessionId);
         if (!active) return;
-        setPeers(
-          data.peers.filter((p) => !shieldedRef.current.has(p.id)),
+        const peerList = data.peers.filter(
+          (p) => !shieldedRef.current.has(p.id),
         );
+        setPeers(peerList);
+        // If our connected stranger vanished (closed or refreshed the
+        // tab), end the chat instead of leaving us stuck on a dead
+        // conversation. A clean leave deletes the row at once
+        // (sendBeacon); a hard close expires it within STALE_MS.
+        const c = connRef.current;
+        if (
+          (c.kind === "connecting" || c.kind === "connected") &&
+          !peerList.some((p) => p.id === c.peerId)
+        ) {
+          teardown("Stranger disconnected.");
+          return;
+        }
         for (const s of data.signals) processSignalRef.current(s);
       } catch {}
       if (active) timer = setTimeout(tick, POLL_INTERVAL_MS);
