@@ -29,8 +29,14 @@ export default function ChatPanel({
   onEnd: () => void;
 }) {
   const [draft, setDraft] = useState("");
+  const [iceIdx, setIceIdx] = useState(0);
   const endRef = useRef<HTMLDivElement>(null);
   const vibe = peerIntent ? intentMeta(peerIntent) : null;
+  const icebreakers = vibe?.icebreakers ?? [];
+  const icebreaker =
+    icebreakers.length > 0
+      ? icebreakers[iceIdx % icebreakers.length]
+      : null;
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -123,6 +129,25 @@ export default function ChatPanel({
         ))}
         <div ref={endRef} />
       </div>
+
+      {connected && icebreaker && messages.length === 0 && (
+        <div className="flex items-center gap-2 border-t border-zinc-800 bg-zinc-900/30 px-4 py-2">
+          <button
+            onClick={() => setDraft(icebreaker)}
+            className="flex-1 truncate rounded-lg bg-zinc-800/60 px-3 py-1.5 text-left text-xs text-zinc-400 transition-all hover:bg-zinc-800 hover:text-zinc-200"
+            title="Tap to use this opener"
+          >
+            💡 {icebreaker}
+          </button>
+          <button
+            onClick={() => setIceIdx((i) => i + 1)}
+            className="shrink-0 rounded-full p-1.5 text-zinc-500 transition-all hover:bg-zinc-800 hover:text-zinc-300"
+            title="Another suggestion"
+          >
+            ↻
+          </button>
+        </div>
+      )}
 
       <form onSubmit={submit} className="flex gap-2 border-t border-zinc-800 bg-zinc-900/50 backdrop-blur p-4">
         <input

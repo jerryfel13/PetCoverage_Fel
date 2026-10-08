@@ -8,18 +8,26 @@ import { intentMeta } from "@/lib/intents";
 
 const TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN ?? "";
 
+export interface MapRipple {
+  lng: number;
+  lat: number;
+  id: number;
+}
+
 export default function WorldMap({
   peers,
   me,
   myIntent,
   onPeerClick,
   canConnect,
+  ripples,
 }: {
   peers: PeerDot[];
   me: { lat: number; lng: number } | null;
   myIntent?: string;
   onPeerClick: (id: string) => void;
   canConnect: boolean;
+  ripples: MapRipple[];
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapboxMap | null>(null);
@@ -88,7 +96,7 @@ export default function WorldMap({
         const el = document.createElement("div");
         el.className = "pulse-me";
         el.title = `You · ${vibe.label}`;
-        el.innerHTML = `<span class="pulse-me-label">Me</span><span class="pulse-me-dot" style="background:${vibe.color}"></span>`;
+        el.innerHTML = `<span class="pulse-me-label">Me</span><span class="pulse-me-dot" style="border-color:${vibe.color}">${vibe.emoji}</span>`;
         meMarkerRef.current = new mapboxgl.Marker({ element: el, anchor: "center" })
           .setLngLat([me.lng, me.lat])
           .addTo(map);
@@ -119,11 +127,16 @@ export default function WorldMap({
       for (const peer of peers) {
         seen.add(peer.id);
         const vibe = intentMeta(peer.intent);
+        const isKindred = peer.intent === myIntent;
         let marker = markers.get(peer.id);
         if (!marker) {
           const el = document.createElement("button");
           el.className = "pulse-dot";
-          el.style.background = vibe.color;
+          el.style.borderColor = vibe.color;
+          el.textContent = vibe.emoji;
+          if (isKindred) {
+            el.style.filter = `drop-shadow(0 0 8px ${vibe.color})`;
+          }
           el.title = `${vibe.label} — tap to connect`;
           el.setAttribute("aria-label", `Connect with ${vibe.label} stranger`);
           el.addEventListener("click", (e) => {
@@ -136,8 +149,12 @@ export default function WorldMap({
           markers.set(peer.id, marker);
         } else {
           const el = marker.getElement();
-          el.style.background = vibe.color;
+          el.style.borderColor = vibe.color;
+          el.textContent = vibe.emoji;
           el.title = `${vibe.label} — tap to connect`;
+          el.style.filter = isKindred
+            ? `drop-shadow(0 0 8px ${vibe.color})`
+            : "";
         }
         marker.getElement().style.opacity = peer.busy ? "0.35" : "1";
         marker.getElement().style.pointerEvents = peer.busy ? "none" : "auto";
@@ -156,6 +173,33 @@ export default function WorldMap({
       cancelled = true;
     };
   }, [peers, ready]);
+
+  // Render connection ripples — one-shot expanding rings at each dot.
+  const seenRipplesRef = useRef<Set<number>>(new Set());
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !ready || ripples.length === 0) return;
+    let cancelled = false;
+
+    (async () => {
+      const mapboxgl = (await import("mapbox-gl")).default;
+      if (cancelled) return;
+      for (const r of ripples) {
+        if (seenRipplesRef.current.has(r.id)) continue;
+        seenRipplesRef.current.add(r.id);
+        const el = document.createElement("div");
+        el.className = "pulse-ripple";
+        const marker = new mapboxgl.Marker({ element: el, anchor: "center" })
+          .setLngLat([r.lng, r.lat])
+          .addTo(map);
+        setTimeout(() => marker.remove(), 1700);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [ripples, ready]);
 
   return (
     <div className="absolute inset-0">

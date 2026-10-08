@@ -27,7 +27,7 @@ Bugs found and fixed:
 
 Implemented:
 
-- Security headers + CSP tuned for Mapbox (`middleware.ts`).
+- Security headers + CSP tuned for Mapbox (`proxy.ts` — Next.js 16 renamed Middleware to Proxy).
 - Session ID validation on join / poll / leave / signal.
 - Signal payload size + nesting checks; reject self-signals.
 - Chat sanitization on the data channel.
@@ -50,6 +50,20 @@ Why this: reviewers remember a product choice, not more polish. Intent makes the
 
 Next with more time: server-side shield TTL, typing indicators, connection-quality meter, TURN for strict NATs.
 
+## Infrastructure fixes
+
+- **Database connection** — Supabase's direct host is IPv6-only, but this machine and Vercel reach it over IPv4 via the shared pooler. `DATABASE_URL` points at the transaction pooler (port 6543, `?pgbouncer=true`) and `DIRECT_URL` at the session pooler (port 5432). `prisma.config.ts` reads `DIRECT_URL` for migrations; `lib/prisma.ts` auto-appends `pgbouncer=true` for pooler hosts so the app uses the transaction pooler at runtime.
+
+## Recent enhancements
+
+- **Mobile zoom fix** — locked the viewport (`maximum-scale=1, user-scalable=no`), raised the chat input to `text-base` (≥16px stops iOS auto-zoom), added `touch-action: manipulation` + `overscroll-behavior: none` on the body, `touch-action: none` on video, and `object-contain` so video isn't cropped.
+- **Emoji + ring markers** — map dots are 30px circles with a colored border, dark fill, and the intent emoji centered (clearer at a glance than a bare colored dot).
+- **Connection ripple** — when a chat connects, an expanding ring fires at both your dot and the stranger's dot.
+- **Kindred glow** — strangers who picked the same intent as you get a colored glow, so shared moods stand out on the map.
+- **Icebreaker prompts** — chat shows a tappable suggested opener (with a ↻ to cycle) when you connect and haven't said anything yet; three prompts per intent.
+- **Onboarding hint + confirmations** — a first-run card explains the map and intents (auto-hides on first connection); ending a chat/video and Shield each ask for confirmation.
+- **`middleware.ts` → `proxy.ts`** — Next.js 16 renamed Middleware to Proxy; the file and its default export are now `proxy`.
+
 ## Trade-offs
 
 - In-memory rate limiting is instance-local on Vercel — blunt abuse, not a global DoS shield.
@@ -60,7 +74,9 @@ Next with more time: server-side shield TTL, typing indicators, connection-quali
 
 - [x] Incremental commits with clear messages
 - [x] `NOTES.md`
-- [ ] `.env` with real `DATABASE_URL` + `NEXT_PUBLIC_MAPBOX_TOKEN`
-- [ ] `npx prisma db push` (adds `intent` column)
-- [ ] Public GitHub repo (clone → new repo, do not fork)
-- [ ] Vercel deploy with the same env vars
+- [x] `.env` with real `DATABASE_URL` + `NEXT_PUBLIC_MAPBOX_TOKEN` (gitignored — set the same vars on Vercel)
+- [x] `npx prisma db push` (schema applied)
+- [x] `npm run build` passes
+- [x] GitHub repo: `github.com/jerryfel13/PetCoverage_Fel` (remote `origin`, branch `main`)
+- [ ] Push commits to GitHub (held pending local testing)
+- [ ] Vercel deploy with `DATABASE_URL`, `DIRECT_URL`, `NEXT_PUBLIC_MAPBOX_TOKEN`

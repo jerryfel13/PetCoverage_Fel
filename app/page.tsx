@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import EntryGate from "./components/EntryGate";
-import WorldMap from "./components/WorldMap";
+import WorldMap, { type MapRipple } from "./components/WorldMap";
 import ConnectionPrompt from "./components/ConnectionPrompt";
 import ChatPanel, { type ChatMessage } from "./components/ChatPanel";
 import VideoPanel from "./components/VideoPanel";
@@ -32,6 +32,9 @@ export default function Home() {
   const [notice, setNotice] = useState<string | null>(null);
   // First-run hint on the map — dismissed manually or on first connection.
   const [showHint, setShowHint] = useState(true);
+  // Connection ripples — expanding rings fired when a chat connects.
+  const [ripples, setRipples] = useState<MapRipple[]>([]);
+  const rippleId = useRef(0);
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
   const [myLocation, setMyLocation] = useState<{ lat: number; lng: number } | null>(
@@ -57,6 +60,35 @@ export default function Home() {
   useEffect(() => {
     if (conn.kind !== "idle") setShowHint(false);
   }, [conn.kind]);
+
+  // Fire a ripple at both dots the moment a connection is established.
+  const connPeerId = conn.kind === "idle" ? null : conn.peerId;
+  const prevConnKind = useRef<Conn["kind"]>(conn.kind);
+  useEffect(() => {
+    const prev = prevConnKind.current;
+    prevConnKind.current = conn.kind;
+    if (
+      prev !== "connected" &&
+      conn.kind === "connected" &&
+      myLocation &&
+      connPeerId
+    ) {
+      const peer = peers.find((p) => p.id === connPeerId);
+      const mineId = rippleId.current++;
+      const peerRippleId = peer ? rippleId.current++ : null;
+      const added: MapRipple[] = [
+        { id: mineId, lng: myLocation.lng, lat: myLocation.lat },
+      ];
+      if (peer && peerRippleId !== null) {
+        added.push({ id: peerRippleId, lng: peer.lng, lat: peer.lat });
+      }
+      setRipples((cur) => [...cur, ...added]);
+      const ids = added.map((r) => r.id);
+      window.setTimeout(() => {
+        setRipples((cur) => cur.filter((r) => !ids.includes(r.id)));
+      }, 1700);
+    }
+  }, [conn.kind, connPeerId, myLocation, peers]);
 
   const [video, _setVideo] = useState<VideoState>("none");
   const videoRef = useRef<VideoState>(video);
@@ -408,6 +440,7 @@ export default function Home() {
         myIntent={myIntent}
         onPeerClick={requestConnection}
         canConnect={conn.kind === "idle"}
+        ripples={ripples}
       />
 
       {/* First-run hint: how to find someone */}
