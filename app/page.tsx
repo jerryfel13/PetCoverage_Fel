@@ -10,7 +10,7 @@ import { join, leave, poll, sendSignal } from "@/lib/api";
 import { PeerSession, type DescType, type PeerControl } from "@/lib/webrtc";
 import { POLL_INTERVAL_MS } from "@/lib/presence";
 import { type PeerDot, type SignalMsg } from "@/lib/types";
-import { type IntentId } from "@/lib/intents";
+import { INTENTS, type IntentId } from "@/lib/intents";
 
 type Conn =
   | { kind: "idle" }
@@ -30,6 +30,8 @@ export default function Home() {
   const [peers, setPeers] = useState<PeerDot[]>([]);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [notice, setNotice] = useState<string | null>(null);
+  // First-run hint on the map — dismissed manually or on first connection.
+  const [showHint, setShowHint] = useState(true);
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
   const [myLocation, setMyLocation] = useState<{ lat: number; lng: number } | null>(
@@ -51,12 +53,22 @@ export default function Home() {
     _setConn(c);
   };
 
+  // Hide the onboarding hint as soon as a connection starts.
+  useEffect(() => {
+    if (conn.kind !== "idle") setShowHint(false);
+  }, [conn.kind]);
+
   const [video, _setVideo] = useState<VideoState>("none");
   const videoRef = useRef<VideoState>(video);
   const setVideo = (v: VideoState) => {
     videoRef.current = v;
     _setVideo(v);
   };
+
+  // Confirmation before ending a connection or video call.
+  const [confirmEnd, setConfirmEnd] = useState<null | "chat" | "video">(null);
+  // Confirmation before shielding a stranger.
+  const [confirmShield, setConfirmShield] = useState(false);
 
   const peerRef = useRef<PeerSession | null>(null);
   const msgId = useRef(0);
@@ -398,6 +410,46 @@ export default function Home() {
         canConnect={conn.kind === "idle"}
       />
 
+      {/* First-run hint: how to find someone */}
+      {phase === "live" && conn.kind === "idle" && showHint && (
+        <div className="absolute left-1/2 top-4 z-20 w-full max-w-sm -translate-x-1/2 animate-slide-in-top px-4">
+          <div className="rounded-2xl border border-zinc-800 bg-zinc-900/95 p-4 text-center shadow-2xl backdrop-blur">
+            <h2 className="text-base font-semibold text-zinc-100">
+              You&rsquo;re on the map
+            </h2>
+            <p className="mt-1 text-sm text-zinc-400">
+              Tap a dot to connect with someone. Chat and video are
+              private — nothing is saved.
+            </p>
+            <div className="mt-3 flex flex-wrap justify-center gap-1.5">
+              {INTENTS.map((intent) => (
+                <span
+                  key={intent.id}
+                  className="inline-flex items-center gap-1 rounded-full bg-zinc-800 px-2 py-0.5 text-[11px] text-zinc-300"
+                >
+                  <span
+                    className="h-1.5 w-1.5 rounded-full"
+                    style={{ background: intent.color }}
+                  />
+                  {intent.label}
+                </span>
+              ))}
+            </div>
+            <p className="mt-2 text-xs text-zinc-500">
+              {peers.length === 0
+                ? "No one nearby yet. Keep this tab open — people show up as they join."
+                : `${peers.length} stranger${peers.length === 1 ? "" : "s"} nearby`}
+            </p>
+            <button
+              onClick={() => setShowHint(false)}
+              className="mt-3 rounded-full bg-emerald-400 px-5 py-1.5 text-xs font-semibold text-zinc-950 transition-all hover:bg-emerald-300 hover:scale-105 active:scale-95"
+            >
+              Got it
+            </button>
+          </div>
+        </div>
+      )}
+
       {notice && (
         <div className="absolute left-1/2 top-20 z-30 -translate-x-1/2 rounded-full bg-zinc-800/90 px-4 py-2 text-sm text-zinc-100 shadow-lg backdrop-blur">
           {notice}
@@ -438,8 +490,8 @@ export default function Home() {
             addMessage(true, text);
           }}
           onStartVideo={startVideoRequest}
-          onShield={shieldPeer}
-          onEnd={endConnection}
+          onShield={() => setConfirmShield(true)}
+          onEnd={() => setConfirmEnd("chat")}
         />
       )}
 
@@ -464,8 +516,74 @@ export default function Home() {
         <VideoPanel
           localStream={localStream}
           remoteStream={remoteStream}
-          onEnd={endVideo}
+          onEnd={() => setConfirmEnd("video")}
         />
+      )}
+
+      {/* Confirmation before ending a connection or video call */}
+      {confirmEnd && (
+        <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/60 p-6 backdrop-blur-sm animate-fade-in">
+          <div className="w-full max-w-xs rounded-2xl border border-zinc-800 bg-zinc-900 p-6 text-center shadow-2xl animate-scale-in">
+            <h3 className="text-lg font-semibold text-zinc-100">
+              {confirmEnd === "video" ? "End video call?" : "End connection?"}
+            </h3>
+            <p className="mt-1 text-sm text-zinc-400">
+              {confirmEnd === "video"
+                ? "Your video will turn off and you'll return to chat."
+                : "You'll need to tap a dot to connect again."}
+            </p>
+            <div className="mt-5 flex gap-3">
+              <button
+                onClick={() => setConfirmEnd(null)}
+                className="flex-1 rounded-full border border-zinc-700 px-4 py-2 text-sm font-medium text-zinc-300 transition-all hover:border-zinc-500 hover:bg-zinc-800 active:scale-95"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  if (confirmEnd === "video") endVideo();
+                  else endConnection();
+                  setConfirmEnd(null);
+                }}
+                className="flex-1 rounded-full bg-red-500 px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-red-400 hover:scale-105 active:scale-95"
+              >
+                 End
+               </button>
+             </div>
+           </div>
+         </div>
+       )}
+
+      {/* Confirmation before shielding a stranger */}
+      {confirmShield && (
+        <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/60 p-6 backdrop-blur-sm animate-fade-in">
+          <div className="w-full max-w-xs rounded-2xl border border-amber-500/30 bg-zinc-900 p-6 text-center shadow-2xl animate-scale-in">
+            <h3 className="text-lg font-semibold text-zinc-100">
+              Shield this stranger?
+            </h3>
+            <p className="mt-1 text-sm text-zinc-400">
+              This ends the connection and hides them for the rest of this
+              session.
+            </p>
+            <div className="mt-5 flex gap-3">
+              <button
+                onClick={() => setConfirmShield(false)}
+                className="flex-1 rounded-full border border-zinc-700 px-4 py-2 text-sm font-medium text-zinc-300 transition-all hover:border-zinc-500 hover:bg-zinc-800 active:scale-95"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  shieldPeer();
+                  setConfirmShield(false);
+                }}
+                className="flex-1 rounded-full bg-amber-500 px-4 py-2 text-sm font-semibold text-zinc-950 transition-all hover:bg-amber-400 hover:scale-105 active:scale-95"
+              >
+                Shield
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </main>
   );
