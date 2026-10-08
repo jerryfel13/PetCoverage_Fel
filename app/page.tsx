@@ -101,6 +101,8 @@ export default function Home() {
   const [confirmEnd, setConfirmEnd] = useState<null | "chat" | "video">(null);
   // Confirmation before shielding a stranger.
   const [confirmShield, setConfirmShield] = useState(false);
+  // Whether the stranger is currently typing.
+  const [peerTyping, setPeerTyping] = useState(false);
 
   const peerRef = useRef<PeerSession | null>(null);
   const msgId = useRef(0);
@@ -127,6 +129,7 @@ export default function Home() {
     setRemoteStream(null);
     setVideo("none");
     setMessages([]);
+    setPeerTyping(false);
     setConn({ kind: "idle" });
     if (message) showNotice(message);
   }
@@ -187,7 +190,18 @@ export default function Home() {
         setRemoteStream(null);
         setVideo("none");
         break;
+      case "typing":
+        setPeerTyping(true);
+        break;
+      case "typing-stop":
+        setPeerTyping(false);
+        break;
     }
+  }
+
+  function handleTyping(active: boolean) {
+    if (!peerRef.current) return;
+    peerRef.current.sendControl(active ? "typing" : "typing-stop");
   }
 
   function requestConnection(peerId: string) {
@@ -441,6 +455,7 @@ export default function Home() {
         onPeerClick={requestConnection}
         canConnect={conn.kind === "idle"}
         ripples={ripples}
+        typingPeerId={peerTyping ? activePeerId : null}
       />
 
       {/* First-run hint: how to find someone */}
@@ -515,6 +530,7 @@ export default function Home() {
           connected={conn.kind === "connected"}
           peerIntent={activePeerIntent}
           videoBusy={video !== "none"}
+          peerTyping={peerTyping}
           onSend={(text) => {
             peerRef.current?.sendChat(text);
             addMessage(true, text);
@@ -522,6 +538,7 @@ export default function Home() {
           onStartVideo={startVideoRequest}
           onShield={() => setConfirmShield(true)}
           onEnd={() => setConfirmEnd("chat")}
+          onTyping={handleTyping}
         />
       )}
 

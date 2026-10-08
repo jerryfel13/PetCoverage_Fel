@@ -14,23 +14,29 @@ export default function ChatPanel({
   connected,
   peerIntent,
   videoBusy,
+  peerTyping,
   onSend,
   onStartVideo,
   onShield,
   onEnd,
+  onTyping,
 }: {
   messages: ChatMessage[];
   connected: boolean;
   peerIntent?: string;
   videoBusy: boolean;
+  peerTyping: boolean;
   onSend: (text: string) => void;
   onStartVideo: () => void;
   onShield: () => void;
   onEnd: () => void;
+  onTyping: (active: boolean) => void;
 }) {
   const [draft, setDraft] = useState("");
   const [iceIdx, setIceIdx] = useState(0);
   const endRef = useRef<HTMLDivElement>(null);
+  const typingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const typingRef = useRef(false);
   const vibe = peerIntent ? intentMeta(peerIntent) : null;
   const icebreakers = vibe?.icebreakers ?? [];
   const icebreaker =
@@ -40,12 +46,37 @@ export default function ChatPanel({
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [messages, peerTyping]);
+
+  // Stop the typing indicator when the panel unmounts.
+  useEffect(() => {
+    return () => {
+      if (typingTimer.current) clearTimeout(typingTimer.current);
+    };
+  }, []);
+
+  function handleDraftChange(value: string) {
+    setDraft(value);
+    if (!typingRef.current) {
+      typingRef.current = true;
+      onTyping(true);
+    }
+    if (typingTimer.current) clearTimeout(typingTimer.current);
+    typingTimer.current = setTimeout(() => {
+      typingRef.current = false;
+      onTyping(false);
+    }, 1500);
+  }
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
     const text = draft.trim();
     if (!text || !connected) return;
+    if (typingTimer.current) clearTimeout(typingTimer.current);
+    if (typingRef.current) {
+      typingRef.current = false;
+      onTyping(false);
+    }
     onSend(text);
     setDraft("");
   }
@@ -124,6 +155,15 @@ export default function ChatPanel({
             </span>
           </div>
         ))}
+        {peerTyping && (
+          <div className="flex items-center gap-1.5 animate-fade-in">
+            <span className="flex gap-1 rounded-2xl border border-zinc-700 bg-zinc-800 px-3 py-2">
+              <span className="h-1.5 w-1.5 rounded-full bg-zinc-400 animate-bounce" />
+              <span className="h-1.5 w-1.5 rounded-full bg-zinc-400 animate-bounce" style={{ animationDelay: "0.15s" }} />
+              <span className="h-1.5 w-1.5 rounded-full bg-zinc-400 animate-bounce" style={{ animationDelay: "0.3s" }} />
+            </span>
+          </div>
+        )}
         <div ref={endRef} />
       </div>
 
@@ -149,7 +189,7 @@ export default function ChatPanel({
       <form onSubmit={submit} className="flex gap-2 border-t border-zinc-800 bg-zinc-900/50 backdrop-blur p-4">
         <input
           value={draft}
-          onChange={(e) => setDraft(e.target.value)}
+          onChange={(e) => handleDraftChange(e.target.value)}
           placeholder={connected ? "Type a message…" : "Connecting…"}
           disabled={!connected}
           className="flex-1 rounded-full bg-zinc-900 px-4 py-2.5 text-base outline-none placeholder:text-zinc-600 transition-all focus:ring-2 focus:ring-emerald-400 disabled:opacity-50 border border-zinc-800"

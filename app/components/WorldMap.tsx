@@ -21,6 +21,7 @@ export default function WorldMap({
   onPeerClick,
   canConnect,
   ripples,
+  typingPeerId,
 }: {
   peers: PeerDot[];
   me: { lat: number; lng: number } | null;
@@ -28,6 +29,7 @@ export default function WorldMap({
   onPeerClick: (id: string) => void;
   canConnect: boolean;
   ripples: MapRipple[];
+  typingPeerId: string | null;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapboxMap | null>(null);
@@ -138,6 +140,7 @@ export default function WorldMap({
             el.style.filter = `drop-shadow(0 0 8px ${vibe.color})`;
           }
           el.title = `${vibe.label} — tap to connect`;
+          if (peer.id === typingPeerId) el.classList.add("typing");
           el.setAttribute("aria-label", `Connect with ${vibe.label} stranger`);
           el.addEventListener("click", (e) => {
             e.stopPropagation();
@@ -155,6 +158,7 @@ export default function WorldMap({
           el.style.filter = isKindred
             ? `drop-shadow(0 0 8px ${vibe.color})`
             : "";
+          el.classList.toggle("typing", peer.id === typingPeerId);
         }
         marker.getElement().style.opacity = peer.busy ? "0.35" : "1";
         marker.getElement().style.pointerEvents = peer.busy ? "none" : "auto";
@@ -172,7 +176,7 @@ export default function WorldMap({
     return () => {
       cancelled = true;
     };
-  }, [peers, ready]);
+  }, [peers, ready, typingPeerId]);
 
   // Render connection ripples — one-shot expanding rings at each dot.
   const seenRipplesRef = useRef<Set<number>>(new Set());

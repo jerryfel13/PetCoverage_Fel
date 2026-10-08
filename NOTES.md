@@ -48,7 +48,7 @@ Noted, not fully solved on serverless alone:
 
 Why this: reviewers remember a product choice, not more polish. Intent makes the globe feel social; Shield is a practical safety affordance for anonymous chat/video.
 
-Next with more time: server-side shield TTL, typing indicators, connection-quality meter, TURN for strict NATs.
+Next with more time: server-side shield TTL, connection-quality meter, TURN for strict NATs.
 
 ## Infrastructure fixes
 
@@ -61,6 +61,7 @@ Next with more time: server-side shield TTL, typing indicators, connection-quali
 - **Connection ripple** — when a chat connects, an expanding ring fires at both your dot and the stranger's dot.
 - **Kindred glow** — strangers who picked the same intent as you get a colored glow, so shared moods stand out on the map.
 - **Icebreaker prompts** — chat shows a tappable suggested opener (with a ↻ to cycle) when you connect and haven't said anything yet; three prompts per intent.
+- **Typing pulse** — while the stranger types, their map dot bounces and chat shows a "typing…" bubble. Typing travels over the data channel (debounced, 1.5s idle timeout), so nothing touches the server.
 - **Onboarding hint + confirmations** — a first-run card explains the map and intents (auto-hides on first connection); ending a chat/video and Shield each ask for confirmation.
 - **`middleware.ts` → `proxy.ts`** — Next.js 16 renamed Middleware to Proxy; the file and its default export are now `proxy`.
 

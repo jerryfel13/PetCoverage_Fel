@@ -115,6 +115,21 @@ body {
   transform: scale(1.15);
 }
 
+/* A dot whose stranger is typing — bounces while the ring keeps pulsing */
+.pulse-dot.typing {
+  animation: pulse-ring 2s ease-out infinite, typing-bounce 0.7s ease-in-out infinite;
+}
+
+@keyframes typing-bounce {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-5px) scale(1.08);
+  }
+}
+
 /* The user's own "you are here" pin — emoji + ring with a white halo. */
 .pulse-me {
   position: relative;

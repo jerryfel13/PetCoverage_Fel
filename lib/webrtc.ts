@@ -5,7 +5,9 @@ export type PeerControl =
   | "video-request"
   | "video-accept"
   | "video-decline"
-  | "video-end";
+  | "video-end"
+  | "typing"
+  | "typing-stop";
 
 interface PeerCallbacks {
   onSignal: (type: DescType, payload: string) => void;
