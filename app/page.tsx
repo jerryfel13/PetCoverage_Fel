@@ -207,7 +207,7 @@ export default function Home() {
   function requestConnection(peerId: string) {
     if (connRef.current.kind !== "idle") return;
     if (shieldedRef.current.has(peerId)) {
-      showNotice("Shielded for this session.");
+      showNotice("Shielded for this visit.");
       return;
     }
     setConn({ kind: "requesting", peerId });
@@ -269,7 +269,7 @@ export default function Home() {
     } else if (c.kind === "incoming") {
       void sendSignal(sessionId, peerId, "decline");
     }
-    teardown("Shielded. They won't reach you this session.");
+    teardown("Shielded. They won't reach you this visit.");
   }
 
   function startVideoRequest() {
@@ -615,8 +615,7 @@ export default function Home() {
               Shield this stranger?
             </h3>
             <p className="mt-1 text-sm text-zinc-400">
-              This ends the connection and hides them for the rest of this
-              session.
+              This ends the chat and hides them for the rest of your visit.
             </p>
             <div className="mt-5 flex gap-3">
               <button

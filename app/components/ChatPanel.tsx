@@ -136,10 +136,10 @@ export default function ChatPanel({
           <div className="mt-8 text-center animate-fade-in">
             <p className="text-2xl">💬</p>
             <p className="mt-2 text-sm text-zinc-500">
-              Say hello. Messages are peer-to-peer and never stored.
+              Say hello. Only you two can read these — nothing is saved.
             </p>
             <p className="mt-1 text-xs text-zinc-600">
-              Use Shield if you want them gone for this session.
+              Tap Shield to hide this person for the rest of your visit.
             </p>
           </div>
         )}

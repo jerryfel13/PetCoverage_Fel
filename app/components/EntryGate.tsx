@@ -136,7 +136,7 @@ export default function EntryGate({
 
       <p className="relative z-10 max-w-md text-center text-sm text-zinc-500 leading-relaxed">
         No sign-up. Your dot is placed 1–3&nbsp;km from your real location.
-        Nothing is stored — closing the tab ends everything.
+        Nothing is saved — closing the tab ends everything.
       </p>
     </div>
   );

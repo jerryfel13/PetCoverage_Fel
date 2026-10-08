@@ -63,6 +63,7 @@ Next with more time: server-side shield TTL, connection-quality meter, TURN for 
 - **Icebreaker prompts** — chat shows a tappable suggested opener (with a ↻ to cycle) when you connect and haven't said anything yet; three prompts per intent.
 - **Typing pulse** — while the stranger types, their map dot bounces and chat shows a "typing…" bubble. Typing travels over the data channel (debounced, 1.5s idle timeout), so nothing touches the server.
 - **UI/UX polish** — fixed a font bug (body rendered in Arial, overriding Geist), added a Space Grotesk display font, redesigned the entry gate (aurora + concentric rings, gradient wordmark, intent cards that glow in their own color, gradient enter button), polished video (vignette, rounded PiP, gradient end button, bouncing waiting state) and chat (gradient own-bubbles, richer empty state, focus glow), and added an ambient aurora, slim theme-matched scrollbars, and a custom selection color.
+- **Plain-language copy** — replaced jargon ("peer-to-peer", "stored", "session") with everyday words ("only you two can read these", "nothing is saved", "your visit").
 - **Onboarding hint + confirmations** — a first-run card explains the map and intents (auto-hides on first connection); ending a chat/video and Shield each ask for confirmation.
 - **`middleware.ts` → `proxy.ts`** — Next.js 16 renamed Middleware to Proxy; the file and its default export are now `proxy`.
 
