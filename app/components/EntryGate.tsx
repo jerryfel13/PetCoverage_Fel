@@ -54,14 +54,23 @@ export default function EntryGate({
     <div className="relative flex min-h-full flex-1 flex-col items-center justify-center gap-10 overflow-hidden bg-zinc-950 p-6 text-zinc-100 animate-fade-in">
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(52,211,153,0.12),_transparent_55%),radial-gradient(ellipse_at_bottom,_rgba(56,189,248,0.08),_transparent_50%)]"
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(52,211,153,0.16),_transparent_55%),radial-gradient(ellipse_at_bottom,_rgba(139,92,246,0.12),_transparent_50%)]"
+      />
+      {/* Faint concentric rings for depth */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute left-1/2 top-1/2 h-[120vmin] w-[120vmin] -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/[0.04]"
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute left-1/2 top-1/2 h-[80vmin] w-[80vmin] -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/[0.05]"
       />
 
-      <div className="relative z-10 text-center space-y-4">
-        <h1 className="text-6xl font-bold tracking-tighter bg-gradient-to-r from-zinc-100 to-zinc-400 bg-clip-text text-transparent">
+      <div className="relative z-10 text-center space-y-5">
+        <h1 className="font-display text-7xl font-bold tracking-tighter bg-gradient-to-br from-emerald-300 via-sky-300 to-violet-400 bg-clip-text text-transparent">
           Pulse
         </h1>
-        <p className="mt-3 max-w-md text-lg text-zinc-400 leading-relaxed">
+        <p className="mx-auto max-w-md text-lg text-zinc-400 leading-relaxed">
           A living globe of anonymous strangers. Drop onto the map and connect.
         </p>
       </div>
@@ -70,7 +79,7 @@ export default function EntryGate({
         <p className="text-center text-xs font-medium uppercase tracking-[0.2em] text-zinc-500">
           Your intent
         </p>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-2 gap-2.5">
           {INTENTS.map((option) => {
             const selected = intent === option.id;
             return (
@@ -78,17 +87,24 @@ export default function EntryGate({
                 key={option.id}
                 type="button"
                 onClick={() => setIntent(option.id)}
-                className={`rounded-2xl border px-4 py-3 text-left transition-all active:scale-[0.98] ${
+                className={`rounded-2xl border p-4 text-left transition-all duration-200 active:scale-[0.98] ${
                   selected
-                    ? "border-emerald-400/60 bg-zinc-900 shadow-[0_0_24px_rgba(52,211,153,0.15)]"
-                    : "border-zinc-800 bg-zinc-950/60 hover:border-zinc-600"
+                    ? "border-transparent bg-zinc-900"
+                    : "border-zinc-800 bg-zinc-950/60 hover:border-zinc-700 hover:bg-zinc-900/40"
                 }`}
+                style={
+                  selected
+                    ? {
+                        boxShadow: `0 0 0 1.5px ${option.color}, 0 10px 34px -10px ${option.color}66`,
+                      }
+                    : undefined
+                }
               >
-                <span className="flex items-center gap-2 text-sm font-semibold">
-                  {option.emoji}
+                <span className="text-2xl leading-none">{option.emoji}</span>
+                <span className="mt-2.5 block text-sm font-semibold text-zinc-100">
                   {option.label}
                 </span>
-                <span className="mt-1 block text-xs text-zinc-500">
+                <span className="mt-0.5 block text-xs text-zinc-500">
                   {option.blurb}
                 </span>
               </button>
@@ -100,7 +116,7 @@ export default function EntryGate({
       <button
         onClick={enter}
         disabled={status === "locating"}
-        className="relative z-10 group rounded-full bg-emerald-400 px-10 py-3.5 font-semibold text-zinc-950 transition-all duration-200 hover:bg-emerald-300 hover:scale-105 hover:shadow-[0_0_30px_rgba(52,211,153,0.5)] active:scale-95 disabled:opacity-60 disabled:hover:scale-100 disabled:hover:shadow-none"
+        className="relative z-10 rounded-full bg-gradient-to-r from-emerald-400 to-sky-400 px-10 py-3.5 font-semibold text-zinc-950 transition-all duration-200 hover:scale-105 hover:shadow-[0_0_44px_rgba(52,211,153,0.45)] active:scale-95 disabled:opacity-60 disabled:hover:scale-100 disabled:hover:shadow-none"
       >
         {status === "locating" ? (
           <span className="flex items-center gap-2">

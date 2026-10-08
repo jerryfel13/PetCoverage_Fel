@@ -458,6 +458,12 @@ export default function Home() {
         typingPeerId={peerTyping ? activePeerId : null}
       />
 
+      {/* Ambient aurora for depth */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-0 z-[5] h-72 bg-gradient-to-b from-emerald-500/[0.07] to-transparent"
+      />
+
       {/* First-run hint: how to find someone */}
       {phase === "live" && conn.kind === "idle" && showHint && (
         <div className="absolute left-1/2 top-4 z-20 w-full max-w-sm -translate-x-1/2 animate-slide-in-top px-4">

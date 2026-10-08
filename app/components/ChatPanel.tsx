@@ -132,11 +132,16 @@ export default function ChatPanel({
       </header>
 
       <div className="flex-1 space-y-3 overflow-y-auto p-4">
-        {messages.length === 0 && (
-          <p className="mt-8 text-center text-sm text-zinc-500 animate-fade-in">
-            Say hello. Messages are peer-to-peer and never stored.
-            Use Shield if you want them gone for this session.
-          </p>
+        {messages.length === 0 && !peerTyping && (
+          <div className="mt-8 text-center animate-fade-in">
+            <p className="text-2xl">💬</p>
+            <p className="mt-2 text-sm text-zinc-500">
+              Say hello. Messages are peer-to-peer and never stored.
+            </p>
+            <p className="mt-1 text-xs text-zinc-600">
+              Use Shield if you want them gone for this session.
+            </p>
+          </div>
         )}
         {messages.map((m, idx) => (
           <div
@@ -147,7 +152,7 @@ export default function ChatPanel({
             <span
               className={`max-w-[80%] rounded-2xl px-4 py-2 text-sm shadow-md ${
                 m.mine
-                  ? "bg-emerald-400 text-zinc-950"
+                  ? "bg-gradient-to-br from-emerald-400 to-emerald-500 text-zinc-950"
                   : "bg-zinc-800 text-zinc-100 border border-zinc-700"
               }`}
             >
@@ -192,7 +197,7 @@ export default function ChatPanel({
           onChange={(e) => handleDraftChange(e.target.value)}
           placeholder={connected ? "Type a message…" : "Connecting…"}
           disabled={!connected}
-          className="flex-1 rounded-full bg-zinc-900 px-4 py-2.5 text-base outline-none placeholder:text-zinc-600 transition-all focus:ring-2 focus:ring-emerald-400 disabled:opacity-50 border border-zinc-800"
+          className="flex-1 rounded-full bg-zinc-900 px-4 py-2.5 text-base outline-none placeholder:text-zinc-600 transition-all focus:ring-2 focus:ring-emerald-400/60 focus:border-emerald-400/40 disabled:opacity-50 border border-zinc-800"
         />
         <button
           type="submit"

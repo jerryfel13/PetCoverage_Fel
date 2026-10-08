@@ -36,9 +36,19 @@ export default function VideoPanel({
           playsInline
           className="h-full w-full bg-zinc-900 object-contain"
         />
+        {/* Subtle vignette for a cinema feel */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,_transparent_55%,_rgba(0,0,0,0.55))]"
+        />
         {!remoteStream && (
-          <div className="absolute inset-0 flex items-center justify-center text-zinc-500">
-            Waiting for stranger&rsquo;s video…
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-zinc-500">
+            <span className="flex gap-1.5">
+              <span className="h-2 w-2 rounded-full bg-zinc-500 animate-bounce" />
+              <span className="h-2 w-2 rounded-full bg-zinc-500 animate-bounce" style={{ animationDelay: "0.15s" }} />
+              <span className="h-2 w-2 rounded-full bg-zinc-500 animate-bounce" style={{ animationDelay: "0.3s" }} />
+            </span>
+            <p className="text-sm">Waiting for stranger&rsquo;s video…</p>
           </div>
         )}
         {/* Local (picture-in-picture) */}
@@ -47,13 +57,13 @@ export default function VideoPanel({
           autoPlay
           playsInline
           muted
-          className="absolute bottom-4 right-4 h-40 w-28 rounded-lg border border-zinc-700 bg-zinc-800 object-cover"
+          className="absolute bottom-5 right-5 h-44 w-32 rounded-2xl border border-white/10 bg-zinc-800 object-cover shadow-2xl"
         />
       </div>
-      <div className="flex justify-center bg-zinc-950 p-4">
+      <div className="flex justify-center bg-zinc-950/90 p-4 backdrop-blur">
         <button
           onClick={onEnd}
-          className="rounded-full bg-red-500 px-8 py-3 font-semibold text-white hover:bg-red-400"
+          className="rounded-full bg-gradient-to-r from-red-500 to-rose-500 px-8 py-3 font-semibold text-white transition-all duration-200 hover:scale-105 hover:shadow-[0_0_30px_rgba(244,63,94,0.4)] active:scale-95"
         >
           End video
         </button>
