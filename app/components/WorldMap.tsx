@@ -105,7 +105,10 @@ export default function WorldMap({
       } else {
         meMarkerRef.current.setLngLat([me.lng, me.lat]);
         const label = meMarkerRef.current.getElement().querySelector(".pulse-me-dot") as HTMLElement | null;
-        if (label) label.style.background = vibe.color;
+        if (label) {
+          label.style.borderColor = vibe.color;
+          label.textContent = vibe.emoji;
+        }
       }
     })();
 

@@ -392,9 +392,11 @@ export default function Home() {
   useEffect(() => {
     if (phase !== "live" || !sessionId) return;
     let active = true;
+    let ticking = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
 
     const tick = async () => {
+      ticking = true;
       try {
         const data = await poll(sessionId);
         if (!active) return;
@@ -416,13 +418,24 @@ export default function Home() {
         }
         for (const s of data.signals) processSignalRef.current(s);
       } catch {}
+      ticking = false;
       if (active) timer = setTimeout(tick, POLL_INTERVAL_MS);
     };
     tick();
 
+    // Browsers throttle (or freeze) timers in background tabs, so the
+    // map can go stale. Re-poll the moment the tab becomes visible.
+    const onVisibility = () => {
+      if (document.visibilityState !== "visible" || !active) return;
+      if (timer) clearTimeout(timer);
+      if (!ticking) tick();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+
     return () => {
       active = false;
       if (timer) clearTimeout(timer);
+      document.removeEventListener("visibilitychange", onVisibility);
     };
   }, [phase, sessionId]);
 
