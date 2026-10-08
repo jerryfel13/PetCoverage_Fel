@@ -70,10 +70,7 @@ export default function ChatPanel({
             {vibe && (
               <span className="ml-1 inline-flex items-center gap-1 text-zinc-400">
                 ·
-                <span
-                  className="inline-block h-1.5 w-1.5 rounded-full"
-                  style={{ background: vibe.color }}
-                />
+                {vibe.emoji}
                 {vibe.label}
               </span>
             )}

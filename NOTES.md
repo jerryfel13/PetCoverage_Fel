@@ -57,7 +57,7 @@ Next with more time: server-side shield TTL, typing indicators, connection-quali
 ## Recent enhancements
 
 - **Mobile zoom fix** — locked the viewport (`maximum-scale=1, user-scalable=no`), raised the chat input to `text-base` (≥16px stops iOS auto-zoom), added `touch-action: manipulation` + `overscroll-behavior: none` on the body, `touch-action: none` on video, and `object-contain` so video isn't cropped.
-- **Emoji + ring markers** — map dots are 30px circles with a colored border, dark fill, and the intent emoji centered (clearer at a glance than a bare colored dot).
+- **Emoji markers everywhere** — map dots are 30px circles with a colored border, dark fill, and the intent emoji centered. The same emoji replaces plain colored dots in the entry picker, connection prompt, chat header, map legend, and onboarding hint, so every intent indicator reads the same.
 - **Connection ripple** — when a chat connects, an expanding ring fires at both your dot and the stranger's dot.
 - **Kindred glow** — strangers who picked the same intent as you get a colored glow, so shared moods stand out on the map.
 - **Icebreaker prompts** — chat shows a tappable suggested opener (with a ↻ to cycle) when you connect and haven't said anything yet; three prompts per intent.

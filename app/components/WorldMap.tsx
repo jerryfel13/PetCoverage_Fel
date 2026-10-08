@@ -225,10 +225,7 @@ export default function WorldMap({
             const vibe = intentMeta(id);
             return (
               <span key={id} className="inline-flex items-center gap-1.5">
-                <span
-                  className="h-2 w-2 rounded-full"
-                  style={{ background: vibe.color }}
-                />
+                {vibe.emoji}
                 {vibe.label}
               </span>
             );

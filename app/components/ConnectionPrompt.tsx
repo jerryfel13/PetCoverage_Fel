@@ -30,10 +30,7 @@ export default function ConnectionPrompt({
         {subtitle && <p className="mt-2 text-sm text-zinc-400">{subtitle}</p>}
         {vibe && (
           <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-zinc-700 bg-zinc-950/70 px-3 py-1.5 text-xs text-zinc-300">
-            <span
-              className="h-2 w-2 rounded-full"
-              style={{ background: vibe.color }}
-            />
+            {vibe.emoji}
             Feeling {vibe.label.toLowerCase()} — {vibe.blurb}
           </div>
         )}

@@ -85,10 +85,7 @@ export default function EntryGate({
                 }`}
               >
                 <span className="flex items-center gap-2 text-sm font-semibold">
-                  <span
-                    className="inline-block h-2.5 w-2.5 rounded-full"
-                    style={{ background: option.color }}
-                  />
+                  {option.emoji}
                   {option.label}
                 </span>
                 <span className="mt-1 block text-xs text-zinc-500">

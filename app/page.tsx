@@ -460,10 +460,7 @@ export default function Home() {
                   key={intent.id}
                   className="inline-flex items-center gap-1 rounded-full bg-zinc-800 px-2 py-0.5 text-[11px] text-zinc-300"
                 >
-                  <span
-                    className="h-1.5 w-1.5 rounded-full"
-                    style={{ background: intent.color }}
-                  />
+                  {intent.emoji}
                   {intent.label}
                 </span>
               ))}
