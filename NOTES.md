@@ -83,5 +83,5 @@ Next with more time: server-side shield TTL, connection-quality meter, TURN for 
 - [x] `npx prisma db push` (schema applied)
 - [x] `npm run build` passes
 - [x] GitHub repo: `github.com/jerryfel13/PetCoverage_Fel` (remote `origin`, branch `main`)
-- [ ] Push commits to GitHub (held pending local testing)
+- [x] Push commits to GitHub
 - [ ] Vercel deploy with `DATABASE_URL`, `DIRECT_URL`, `NEXT_PUBLIC_MAPBOX_TOKEN`
