@@ -1,4 +1,5 @@
 import { sanitizeChatMessage } from "@/lib/validation";
+import type { AckStatus } from "@/lib/types";
 
 export type DescType = "offer" | "answer" | "ice";
 export type PeerControl =
@@ -11,7 +12,8 @@ export type PeerControl =
 
 interface PeerCallbacks {
   onSignal: (type: DescType, payload: string) => void;
-  onChat: (text: string) => void;
+  onChat: (id: string, text: string) => void;
+  onAck: (id: string, status: AckStatus) => void;
   onControl: (ctrl: PeerControl) => void;
   onRemoteStream: (stream: MediaStream | null) => void;
   onConnectionState: (state: RTCPeerConnectionState) => void;
@@ -80,9 +82,15 @@ export class PeerSession {
     dc.onmessage = (e) => {
       try {
         const msg = JSON.parse(e.data as string);
-        if (msg.t === "chat" && typeof msg.text === "string") {
+        if (
+          msg.t === "chat" &&
+          typeof msg.id === "string" &&
+          typeof msg.text === "string"
+        ) {
           const sanitized = sanitizeChatMessage(msg.text);
-          if (sanitized) this.cb.onChat(sanitized);
+          if (sanitized) this.cb.onChat(msg.id, sanitized);
+        } else if (msg.t === "ack" && typeof msg.id === "string") {
+          this.cb.onAck(msg.id, msg.status as AckStatus);
         } else if (msg.t === "ctrl" && typeof msg.ctrl === "string") {
           this.cb.onControl(msg.ctrl as PeerControl);
         }
@@ -133,8 +141,12 @@ export class PeerSession {
     }
   }
 
-  sendChat(text: string) {
-    this.safeSend({ t: "chat", text });
+  sendChat(text: string, id: string) {
+    this.safeSend({ t: "chat", id, text });
+  }
+
+  sendAck(id: string, status: AckStatus) {
+    this.safeSend({ t: "ack", id, status });
   }
 
   sendControl(ctrl: PeerControl) {

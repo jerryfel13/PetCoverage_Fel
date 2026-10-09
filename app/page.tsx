@@ -9,7 +9,7 @@ import VideoPanel from "./components/VideoPanel";
 import { join, leave, poll, sendSignal } from "@/lib/api";
 import { PeerSession, type DescType, type PeerControl } from "@/lib/webrtc";
 import { POLL_INTERVAL_MS } from "@/lib/presence";
-import { type PeerDot, type SignalMsg } from "@/lib/types";
+import { type PeerDot, type SignalMsg, type MessageStatus } from "@/lib/types";
 import { INTENTS, type IntentId } from "@/lib/intents";
 
 type Conn =
@@ -105,7 +105,7 @@ export default function Home() {
   const [peerTyping, setPeerTyping] = useState(false);
 
   const peerRef = useRef<PeerSession | null>(null);
-  const msgId = useRef(0);
+  const seenIdsRef = useRef<Set<string>>(new Set());
   const requestTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const videoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -114,8 +114,19 @@ export default function Home() {
     window.setTimeout(() => setNotice(null), 3500);
   }
 
-  function addMessage(mine: boolean, text: string) {
-    setMessages((prev) => [...prev, { id: msgId.current++, mine, text }]);
+  function addMessage(
+    mine: boolean,
+    text: string,
+    id: string,
+    status?: MessageStatus,
+  ) {
+    setMessages((prev) => [...prev, { id, mine, text, status }]);
+  }
+
+  function updateMessageStatus(id: string, status: MessageStatus) {
+    setMessages((prev) =>
+      prev.map((m) => (m.id === id ? { ...m, status } : m)),
+    );
   }
 
   function teardown(message?: string) {
@@ -132,6 +143,7 @@ export default function Home() {
     setRemoteStream(null);
     setVideo("none");
     setMessages([]);
+    seenIdsRef.current.clear();
     setPeerTyping(false);
     setConn({ kind: "idle" });
     if (message) showNotice(message);
@@ -142,7 +154,11 @@ export default function Home() {
       onSignal: (type: DescType, payload: string) => {
         void sendSignal(sessionId, peerId, type, payload);
       },
-      onChat: (text) => addMessage(false, text),
+      onChat: (id, text) => {
+        addMessage(false, text, id);
+        peerRef.current?.sendAck(id, "delivered");
+      },
+      onAck: (id, status) => updateMessageStatus(id, status),
       onControl: (ctrl) => handleControl(ctrl),
       onRemoteStream: (stream) => setRemoteStream(stream),
       onConnectionState: (state) => {
@@ -439,6 +455,17 @@ export default function Home() {
     };
   }, [phase, sessionId]);
 
+  // Acknowledge "seen" for incoming messages once they have rendered,
+  // so the sender's status advances delivered → seen.
+  useEffect(() => {
+    for (const m of messages) {
+      if (!m.mine && !seenIdsRef.current.has(m.id)) {
+        seenIdsRef.current.add(m.id);
+        peerRef.current?.sendAck(m.id, "seen");
+      }
+    }
+  }, [messages]);
+
   useEffect(() => {
     if (!sessionId || phase !== "live") return;
     const onLeave = () => leave(sessionId);
@@ -567,8 +594,9 @@ export default function Home() {
           videoBusy={video !== "none"}
           peerTyping={peerTyping}
           onSend={(text) => {
-            peerRef.current?.sendChat(text);
-            addMessage(true, text);
+            const id = crypto.randomUUID();
+            peerRef.current?.sendChat(text, id);
+            addMessage(true, text, id, "sent");
           }}
           onStartVideo={startVideoRequest}
           onShield={() => setConfirmShield(true)}

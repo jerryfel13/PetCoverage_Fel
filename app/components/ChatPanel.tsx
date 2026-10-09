@@ -2,11 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import { intentMeta } from "@/lib/intents";
+import type { MessageStatus } from "@/lib/types";
 
 export interface ChatMessage {
-  id: number;
+  id: string;
   mine: boolean;
   text: string;
+  status?: MessageStatus;
 }
 
 export default function ChatPanel({
@@ -146,7 +148,7 @@ export default function ChatPanel({
         {messages.map((m, idx) => (
           <div
             key={m.id}
-            className={`flex ${m.mine ? "justify-end" : "justify-start"} animate-slide-in-bottom`}
+            className={`flex flex-col ${m.mine ? "items-end" : "items-start"} animate-slide-in-bottom`}
             style={{ animationDelay: `${idx * 0.05}s` }}
           >
             <span
@@ -158,6 +160,19 @@ export default function ChatPanel({
             >
               {m.text}
             </span>
+            {m.mine && m.status && (
+              <span
+                className={`mt-0.5 mr-1 text-[10px] ${
+                  m.status === "seen" ? "text-emerald-400" : "text-zinc-500"
+                }`}
+              >
+                {m.status === "seen"
+                  ? "Seen"
+                  : m.status === "delivered"
+                    ? "Delivered"
+                    : "Sent"}
+              </span>
+            )}
           </div>
         ))}
         {peerTyping && (

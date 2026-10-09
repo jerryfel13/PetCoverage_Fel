@@ -31,3 +31,6 @@ export interface PollResponse {
   peers: PeerDot[];
   signals: SignalMsg[];
 }
+
+export type AckStatus = "delivered" | "seen";
+export type MessageStatus = "sent" | AckStatus;
